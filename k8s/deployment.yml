@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lemonbox-scheduler-admin
+spec:
+  selector:
+    app: lemonbox-scheduler-admin
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      name: http
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lemonbox-scheduler-admin
+  annotations:
+    kubernetes.io/change-cause: registry-vpc.cn-beijing.aliyuncs.com/lemonbox/lemonbox-scheduler-admin:{{GIT_COMMIT}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lemonbox-scheduler-admin
+  template:
+    metadata:
+      labels:
+        app: lemonbox-scheduler-admin
+    spec:
+      containers:
+        - name: lemonbox-scheduler-admin
+          image: registry-vpc.cn-beijing.aliyuncs.com/lemonbox/lemonbox-scheduler-admin:{{GIT_COMMIT}}
+          ports:
+            - containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 3000
+            initialDelaySeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 3000
+            initialDelaySeconds: 60
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 1Gi
+          env:
+            - name: PROFILE
+              value: pro
+          volumeMounts:
+            - name: timezone
+              mountPath: /etc/localtime
+      imagePullSecrets:
+        - name: aliyun-registry-vpc
+      volumes:
+        - name: timezone
+          hostPath:
+            path: /usr/share/zoneinfo/Asia/Shanghai
